@@ -1,5 +1,17 @@
+// * Import Libraries
+// * Flutter Libraries
 import 'package:flutter/material.dart';
+import 'package:flutter_firebase_login/model/user_model.dart';
+
+// * Project Libraries
 import 'package:flutter_firebase_login/pages/login_page.dart';
+import 'package:flutter_firebase_login/pages/home_page.dart';
+
+// * Firebase Libraries
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -9,6 +21,9 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  // * Firebase Auth
+  final _auth = FirebaseAuth.instance;
+
   // * Our Form Key
   final _formKey = GlobalKey<FormState>();
 
@@ -26,7 +41,16 @@ class _RegisterPageState extends State<RegisterPage> {
       autofocus: false,
       controller: fstNmController,
       keyboardType: TextInputType.name,
-      // ! Implement this validator:(){}
+      validator: (value) {
+        RegExp regex = new RegExp(r'^.{3,}$');
+        if (value!.isEmpty) {
+          return ("Digite seu nome!");
+        }
+        if (!regex.hasMatch(value)) {
+          return ("O nome precisa ter no mínimo 3 caracteres");
+        }
+        return null;
+      },
       onSaved: (value) {
         fstNmController.text = value!;
       },
@@ -46,7 +70,12 @@ class _RegisterPageState extends State<RegisterPage> {
       autofocus: false,
       controller: scdNmController,
       keyboardType: TextInputType.name,
-      // ! Implement this validator:(){}
+      validator: (value) {
+        if (value!.isEmpty) {
+          return ("Digite seu sobrenome!");
+        }
+        return null;
+      },
       onSaved: (value) {
         scdNmController.text = value!;
       },
@@ -66,7 +95,16 @@ class _RegisterPageState extends State<RegisterPage> {
       autofocus: false,
       controller: emailController,
       keyboardType: TextInputType.emailAddress,
-      // ! Implement this validator:(){}
+      validator: (value) {
+        if (value!.isEmpty) {
+          return ("Digite seu email!");
+        }
+        // * Reg Expression Email validation
+        if (!RegExp("^[a-zA-Z0-9+_,-]+.[a-z]").hasMatch(value)) {
+          return ("Formato de Email inválido!");
+        }
+        return null;
+      },
       onSaved: (value) {
         emailController.text = value!;
       },
@@ -86,7 +124,16 @@ class _RegisterPageState extends State<RegisterPage> {
       autofocus: false,
       controller: passController,
       obscureText: true,
-      // ! Implement this validator:(){}
+      validator: (value) {
+        RegExp regex = new RegExp(r'^.{6,}$');
+        if (value!.isEmpty) {
+          return ("Digite sua senha!");
+        }
+        if (!regex.hasMatch(value)) {
+          return ("Sua senha precisa ter no mínimo 6 caracteres");
+        }
+        return null;
+      },
       onSaved: (value) {
         passController.text = value!;
       },
@@ -106,7 +153,20 @@ class _RegisterPageState extends State<RegisterPage> {
       autofocus: false,
       controller: cfmPassController,
       obscureText: true,
-      // ! Implement this validator:(){}
+      validator: (value) {
+        RegExp regex = new RegExp(r'^.{6,}$');
+        if (value!.isEmpty) {
+          return ("Digite a confirmação senha!");
+        }
+        if (!regex.hasMatch(value)) {
+          return ("Sua senha precisa ter no mínimo 6 caracteres");
+        }
+        if (passController.text != value) {
+          return ("As senhas inseridas são diferentes");
+        }
+
+        return null;
+      },
       onSaved: (value) {
         cfmPassController.text = value!;
       },
@@ -129,7 +189,9 @@ class _RegisterPageState extends State<RegisterPage> {
       child: MaterialButton(
         padding: EdgeInsets.fromLTRB(20, 15, 20, 15),
         minWidth: MediaQuery.of(context).size.width,
-        onPressed: () {},
+        onPressed: () {
+          signUp(emailController.text, passController.text);
+        },
         child: Text(
           "Cadastrar-se",
           textAlign: TextAlign.center,
@@ -223,5 +285,45 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ),
     );
+  }
+
+  // * Register Function
+  void signUp(String email, String password) async {
+    if (_formKey.currentState!.validate()) {
+      await _auth
+          .createUserWithEmailAndPassword(email: email, password: password)
+          .then((value) => {
+                postDetailsToFirestore(),
+              })
+          .catchError((e) {
+        Fluttertoast.showToast(msg: e!.message);
+      });
+    }
+  }
+
+  postDetailsToFirestore() async {
+    // * Calling Firestore
+    // * Calling User Model
+    // * Sending these values
+
+    FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
+    User? user = _auth.currentUser;
+
+    UserModel userModel = UserModel();
+
+    // * Writing all the values
+    userModel.email = user!.email;
+    userModel.uid = user.uid;
+    userModel.fstName = fstNmController.text;
+    userModel.scdName = scdNmController.text;
+
+    await firebaseFirestore
+        .collection("users")
+        .doc(user.uid)
+        .set(userModel.toMap());
+    Fluttertoast.showToast(msg: "Account created successfully");
+
+    Navigator.pushAndRemoveUntil((context),
+        MaterialPageRoute(builder: (context) => HomePage()), (route) => false);
   }
 }
