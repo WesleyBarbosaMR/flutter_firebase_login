@@ -24,7 +24,7 @@ class _HomePageState extends State<HomePage> {
               SizedBox(
                 height: 180,
                 child: Image.asset(
-                  "login_image.png",
+                  "assets/login_image.png",
                   fit: BoxFit.contain,
                 ),
               ),
