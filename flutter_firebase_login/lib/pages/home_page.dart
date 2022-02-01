@@ -1,6 +1,7 @@
 // * Import Libraries
 // * Flutter Libraries
 import 'package:flutter/material.dart';
+import 'package:flutter_firebase_login/model/user_model.dart';
 
 // * Project Libraries
 import 'package:flutter_firebase_login/pages/login_page.dart';
@@ -20,6 +21,22 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  User? user = FirebaseAuth.instance.currentUser;
+  UserModel loggedInUser = UserModel();
+
+  @override
+  void initState() {
+    super.initState();
+    FirebaseFirestore.instance
+        .collection("user")
+        .doc(user!.uid)
+        .get()
+        .then((value) {
+      this.loggedInUser = UserModel.fromMap(value.data());
+      setState(() {});
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,14 +68,14 @@ class _HomePageState extends State<HomePage> {
                 height: 10,
               ),
               Text(
-                "Nome",
+                "${loggedInUser.fstName} ${loggedInUser.scdName}",
                 style: TextStyle(
                   color: Colors.black54,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
-                "Email",
+                "${loggedInUser.email}",
                 style: TextStyle(
                   color: Colors.black54,
                   fontWeight: FontWeight.w500,
@@ -69,11 +86,22 @@ class _HomePageState extends State<HomePage> {
               ),
               ActionChip(
                 label: Text("Log out"),
-                onPressed: () {},
+                onPressed: () {
+                  logout(context);
+                },
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => LoginPage(),
       ),
     );
   }

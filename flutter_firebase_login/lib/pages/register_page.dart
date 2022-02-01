@@ -161,7 +161,7 @@ class _RegisterPageState extends State<RegisterPage> {
         if (!regex.hasMatch(value)) {
           return ("Sua senha precisa ter no mínimo 6 caracteres");
         }
-        if (passController.text != value) {
+        if (cfmPassController.text != passController.text) {
           return ("As senhas inseridas são diferentes");
         }
 
